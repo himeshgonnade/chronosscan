@@ -12,7 +12,7 @@ class RAGService {
         });
 
         this.llm = new Ollama({
-            model: "llama3", // User has llama3 installed
+            model: "llama3:latest", // User has llama3:latest installed
             baseUrl: "http://localhost:11434",
         });
     }

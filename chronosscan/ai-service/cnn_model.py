@@ -106,4 +106,4 @@ class MedicalCNN:
             "anomaly_detected": anomaly_detected,
             "distance": distance
         }
-```
+

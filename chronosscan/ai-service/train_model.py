@@ -6,13 +6,14 @@ import os
 import time
 
 def train_model():
-    # Data path
-    data_dir = r"D:\bytecoders\bytebuilders\Frontend\public\Training"
+    # Define dataset path
+    dataset_path = "D:/bytecoders/chronosscan/public/Training"
     
-    if not os.path.exists(data_dir):
-        print(f"Error: Data directory not found at {data_dir}")
-        return
-
+    # Check if dataset exists
+    if not os.path.exists(dataset_path):
+        print(f"Dataset not found at {dataset_path}")
+        print("Please ensure your dataset is in 'D:/bytecoders/chronosscan/public/Training'")
+        exit(1)
     # Transformations
     data_transforms = transforms.Compose([
         transforms.Resize(256),
@@ -22,7 +23,7 @@ def train_model():
     ])
 
     # Load Data
-    image_dataset = datasets.ImageFolder(data_dir, data_transforms)
+    image_dataset = datasets.ImageFolder(dataset_path, data_transforms)
     dataloader = torch.utils.data.DataLoader(image_dataset, batch_size=32, shuffle=True, num_workers=0) # num_workers=0 for Windows compatibility
     class_names = image_dataset.classes
     print(f"Classes found: {class_names}")
