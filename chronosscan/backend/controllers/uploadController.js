@@ -1,6 +1,6 @@
 const db = require('../config/db');
-const path = require('path');
 const axios = require('axios');
+const ragService = require('../services/ragService');
 
 exports.uploadScan = async (req, res) => {
     try {
@@ -10,12 +10,9 @@ exports.uploadScan = async (req, res) => {
 
         const { patient_id, scan_date, scan_type } = req.body;
         // Normalize path: store as 'dataset/patient_id/filename'
-        // req.file.path is absolute/full path because of our change in uploadRoutes
-        // We need to convert it to relative path for frontend serving
-
         const fullPath = req.file.path.replace(/\\/g, '/');
         const relativePath = fullPath.split('frontend/public/')[1];
-        const scanPath = relativePath || fullPath; // Fallback if split fails
+        const scanPath = relativePath || fullPath;
 
         // 1. Save scan processing metadata to DB
         const [result] = await db.execute(
@@ -24,6 +21,7 @@ exports.uploadScan = async (req, res) => {
         );
 
         const scanId = result.insertId;
+        let aiAnalysisResult = null;
 
         // 2. Trigger AI Analysis (Async)
         try {
@@ -36,12 +34,13 @@ exports.uploadScan = async (req, res) => {
 
             // Update DB with results
             if (aiResponse.data) {
+                aiAnalysisResult = aiResponse.data;
                 await db.execute(
                     'UPDATE scans SET cnn_change_percentage = ?, anomaly_detected = ?, heatmap_path = ? WHERE id = ?',
                     [
-                        aiResponse.data.change_percentage,
-                        aiResponse.data.anomaly_detected,
-                        aiResponse.data.heatmap_path,
+                        aiAnalysisResult.change_percentage,
+                        aiAnalysisResult.anomaly_detected,
+                        aiAnalysisResult.heatmap_path,
                         scanId
                     ]
                 );
@@ -50,8 +49,23 @@ exports.uploadScan = async (req, res) => {
             console.error("AI Service Error:", aiError.message);
         }
 
+        // 3. Trigger RAG Report Generation (Fire and Forget)
+        // We do NOT await this, so the frontend gets a fast response.
+        ragService.generateClinicalSummary(patient_id, aiAnalysisResult || { change_percentage: 0, anomaly_detected: false })
+            .then(async (clinicalReport) => {
+                // Save Report to DB
+                await db.execute(
+                    'INSERT INTO reports (patient_id, scan_id, report_text) VALUES (?, ?, ?)',
+                    [patient_id, scanId, clinicalReport]
+                );
+                console.log(`RAG Report generated for Scan ${scanId}`);
+            })
+            .catch(ragError => {
+                console.error("RAG Service Error (Background):", ragError.message);
+            });
+
         res.status(201).json({
-            message: 'Scan uploaded successfully',
+            message: 'Scan uploaded and processed successfully',
             scanId: scanId,
             path: scanPath
         });

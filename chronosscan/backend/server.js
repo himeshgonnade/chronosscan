@@ -24,6 +24,8 @@ app.use('/dataset', express.static(path.join(__dirname, '../frontend/public/data
 // Routes
 app.use('/api/patient', patientRoutes);
 app.use('/api/upload-scan', uploadRoutes);
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
 app.get('/', (req, res) => {
     res.send('ChronosScan API is running');

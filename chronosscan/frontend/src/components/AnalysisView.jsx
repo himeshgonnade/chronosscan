@@ -11,20 +11,30 @@ const AnalysisView = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        let pollInterval;
+
         const fetchScanDetails = async () => {
             try {
                 const response = await api.get(`/upload-scan/${scanId}`);
                 setScanData(response.data.current);
                 setPrevScanData(response.data.previous);
                 setLoading(false);
+
+                // If report is missing, poll again
+                if (!response.data.current.report_text) {
+                    pollInterval = setTimeout(fetchScanDetails, 3000); // Poll every 3 seconds
+                }
             } catch (error) {
                 console.error("Error fetching scan:", error);
                 setError("Failed to load analysis. Please try again.");
                 setLoading(false);
             }
         };
+
         fetchScanDetails();
-    }, [scanId]);
+
+        return () => clearTimeout(pollInterval);
+    }, [scanId, scanData?.report_text]); // Dependency on report_text to stop polling when present
 
     const getImageUrl = (path) => {
         if (!path) return 'https://via.placeholder.com/400x400?text=No+Data';

@@ -1,5 +1,5 @@
-const { Ollama } = require("@langchain/ollama");
-const { OllamaEmbeddings } = require("@langchain/ollama");
+const { Ollama } = require("langchain/llms/ollama");
+const { OllamaEmbeddings } = require("langchain/embeddings/ollama");
 const { MemoryVectorStore } = require("langchain/vectorstores/memory");
 const { Document } = require("langchain/document");
 const db = require('../config/db');
@@ -7,12 +7,12 @@ const db = require('../config/db');
 class RAGService {
     constructor() {
         this.embeddings = new OllamaEmbeddings({
-            model: "nomic-embed-text", // As per user request
-            baseUrl: "http://localhost:11434", // Default Ollama port
+            model: "nomic-embed-text",
+            baseUrl: "http://localhost:11434",
         });
 
         this.llm = new Ollama({
-            model: "gemma3:1b", // As per user request
+            model: "llama3", // User has llama3 installed
             baseUrl: "http://localhost:11434",
         });
     }
@@ -66,20 +66,25 @@ class RAGService {
 
             // 5. Generate Summary
             const prompt = `
-            You are an expert medical AI assistant.
-            Answer based only on the context below.
+            You are an expert medical AI assistant specialized in radiology.
+            Your task is to analyze the patient's history and the current scan analysis to provide a professional clinical summary.
             
             Context:
             ${contextText}
             
             Query:
-            ${doctorQuery || "Provide a clinical summary of the patient's progression based on the provided history and current scan."}
+            ${doctorQuery || "Provide a detailed clinical summary of the patient's status, noting any progression or anomalies."}
             
-            Output:
-            Generate a structured response with:
-            - Progression Summary
-            - AI Interpretation
-            - Clinical Recommendation
+            Output Guidelines:
+            - Use professional medical terminology.
+            - Be concise but thorough.
+            - Highlighting critical findings is mandatory.
+            
+            Response Structure:
+            1. **Patient Status**: Current state based on the scan.
+            2. **Longitudinal Assessment**: Comparison with previous history (identifying progression or regression).
+            3. **AI Detected Features**: Specific anomalies or features found in the current scan.
+            4. **Clinical Recommendations**: Suggsested next steps for the radiologist.
             `;
 
             const response = await this.llm.invoke(prompt);

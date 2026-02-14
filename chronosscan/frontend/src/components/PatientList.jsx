@@ -5,33 +5,89 @@ import api from '../api';
 const PatientList = () => {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [newPatient, setNewPatient] = useState({ name: '', age: '', gender: 'Male' });
 
     useEffect(() => {
-        const fetchPatients = async () => {
-            try {
-                const response = await api.get('/patient');
-                setPatients(response.data);
-            } catch (error) {
-                console.error('Error fetching patients:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchPatients();
     }, []);
+
+    const fetchPatients = async () => {
+        try {
+            const response = await api.get('/patient');
+            setPatients(response.data);
+        } catch (error) {
+            console.error('Error fetching patients:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddPatient = async (e) => {
+        e.preventDefault();
+        try {
+            await api.post('/patient', newPatient);
+            setShowModal(false);
+            setNewPatient({ name: '', age: '', gender: 'Male' });
+            fetchPatients(); // Refresh list
+        } catch (error) {
+            console.error('Error adding patient:', error);
+            alert('Failed to add patient');
+        }
+    };
 
     return (
         <div className="container-fluid px-0">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 className="fw-bold mb-1">Patient Directory</h2>
+                    <h2 className="fw-bold mb-1 text-primary">Patient Directory</h2>
                     <p className="text-secondary">Manage patient records and view scan history.</p>
                 </div>
-                <button className="btn btn-primary d-flex align-items-center gap-2">
+                <button className="btn btn-primary d-flex align-items-center gap-2 shadow-sm" onClick={() => setShowModal(true)}>
                     <i className="bi bi-person-plus-fill"></i>
                     Add Patient
                 </button>
             </div>
+
+            {/* Add Patient Modal */}
+            {showModal && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog">
+                        <div className="modal-content">
+                            <div className="modal-header bg-primary text-white">
+                                <h5 className="modal-title">Register New Patient</h5>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
+                            </div>
+                            <form onSubmit={handleAddPatient}>
+                                <div className="modal-body">
+                                    <div className="mb-3">
+                                        <label className="form-label">Full Name</label>
+                                        <input type="text" className="form-control" value={newPatient.name} onChange={e => setNewPatient({ ...newPatient, name: e.target.value })} required />
+                                    </div>
+                                    <div className="row">
+                                        <div className="col-md-6 mb-3">
+                                            <label className="form-label">Age</label>
+                                            <input type="number" className="form-control" value={newPatient.age} onChange={e => setNewPatient({ ...newPatient, age: e.target.value })} required />
+                                        </div>
+                                        <div className="col-md-6 mb-3">
+                                            <label className="form-label">Gender</label>
+                                            <select className="form-select" value={newPatient.gender} onChange={e => setNewPatient({ ...newPatient, gender: e.target.value })}>
+                                                <option>Male</option>
+                                                <option>Female</option>
+                                                <option>Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary">Save Patient</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div className="text-center py-5">

@@ -80,8 +80,15 @@ def analyze_scan():
                 heatmap_path = f"uploads/heatmap_{scan_id}.jpg" # Placeholder
             else:
                 cnn_results = {"change_percentage": 0, "anomaly_detected": False, "note": "Previous scan file not found"}
+            else:
+                cnn_results = {"change_percentage": 0, "anomaly_detected": False, "note": "Previous scan file not found"}
         else:
             cnn_results = {"change_percentage": 0, "anomaly_detected": False, "note": "No previous scan found"}
+
+        # Get Classification
+        prediction = cnn.predict_classification(abs_file_path)
+        if prediction:
+            cnn_results['classification'] = prediction
 
         # 2. RAG Retrieval
         context = rag.retrieve_context(patient_id, "scan analysis") # Simple query for now
@@ -97,6 +104,7 @@ def analyze_scan():
         return jsonify({
             "change_percentage": cnn_results.get('change_percentage', 0),
             "anomaly_detected": cnn_results.get('anomaly_detected', False),
+            "classification": cnn_results.get('classification', 'Unknown'),
             "heatmap_path": heatmap_path,
             "report": report
         })
